@@ -1,0 +1,44 @@
+{
+  "summary": "Full backend + frontend E2E testing of AquaRekap (AMDK sales recap). Backend: 36 pytest cases across auth (cookies/bcrypt/refresh/logout), products, customers, transactions+filters, dashboard, rekap bulanan, export excel/pdf, CORS -> 34 passed / 2 failed (94.4%). Frontend: login (success + wrong password error), dashboard KPIs & charts, full transaction entry flow (customer -> default price type -> product -> variant -> auto price -> price-type change updates price -> manual price -> qty -> subtotal/total), save, status toggle, delete with confirm, all 3 filters (date range/customer/status), Excel+PDF downloads, Produk CRUD, Customer CRUD, Rekap Bulanan month switch, logout + protected-route guard. All frontend flows passed. All test data created was deleted (DB back to 3 products / 3 customers / 4 seed transactions).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/auth/login", "issue": "No brute-force lockout / rate limiting. 6+ consecutive wrong-password attempts all return 401; playbook requires lockout (429) after 5 failed attempts.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "DELETE /api/products/{id}, /api/customers/{id}, /api/transactions/{id}", "issue": "Returns 200 'dihapus' for non-existent IDs (delete_one result not checked) instead of 404."},
+      {"endpoint": "POST /api/auth/refresh", "issue": "If the JWT sub no longer exists, `user` is None and `user['_id']` raises TypeError -> 500 instead of 401."},
+      {"endpoint": "GET /api/rekap/monthly", "issue": "month/year are not range-validated; month=13 returns 200 with empty payload instead of 422."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Transaksi (Tanggal, filter Dari/Sampai) ", "issues": ["Uses native browser <input type=\"date\"> pickers (mm/dd/yyyy locale format) instead of the shadcn Calendar/Popover component; inconsistent with the rest of the shadcn UI and shows US date format in an Indonesian app"]},
+      {"screen": "Produk / Customer pages", "issues": ["Large empty whitespace below the card grid (only 3 cards); consider a min-height/empty-state layout"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/backend/tests/conftest.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Add login brute-force lockout / rate limiting (429 after 5 failed attempts) per auth playbook",
+    "Return 404 on DELETE of non-existent product/customer/transaction (check delete_one deleted_count)",
+    "Guard /api/auth/refresh against missing user (return 401 instead of 500)",
+    "Validate year/month range on /api/rekap/monthly (month 1-12 -> 422 otherwise)",
+    "Optional: replace native date inputs with shadcn Calendar + Indonesian date formatting"
+  ],
+  "critical_code_review_comments": [
+    "server.py delete handlers ignore delete_one().deleted_count -> silently report success for unknown IDs",
+    "refresh_token(): `user = await db.users.find_one(...)` result is dereferenced without a None check",
+    "No rate limiting on /api/auth/login; single-admin app is exposed to credential brute force",
+    "Cookies use secure=True + samesite=none which is correct for the HTTPS preview, but will break plain-HTTP local dev; consider deriving from an env flag",
+    "Verified good: bcrypt hashes are $2b$, httpOnly cookies set, MongoDB _id excluded from all responses ({\"_id\": 0} projections), CORS echoes explicit origin with allow_credentials=true (preview ingress additionally rewrites ACAO to '*' - infra-level, not app), seed_admin re-hashes password when ADMIN_PASSWORD changes"
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/backend/tests/conftest.py"],
+  "success_rate": {"backend": "94%", "frontend": "100%"},
+  "seed_data_creation": "Created and then deleted: TEST_PRODUK/TEST_PRODUK_EDIT, TEST_CUST/TEST_CUST_EDIT, TEST_PRODUK_UI2, TEST_CUST_UI2 and several TEST_ transactions (2026-07-05/10/15). DB verified back to original seed state.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "liviaangeline@gmail.com / admin123 (from /app/memory/test_credentials.md) - works",
+  "context_for_next_testing_agent": "Backend suite lives at /app/backend/tests/backend_test.py (pytest.ini forces -n 2 --dist loadscope; TestDashboard consistency test has a 1x retry because parallel workers mutate transactions - run with -n 0 if you see cross-class flakiness). Known open failures: TestAuth::test_brute_force_lockout (no rate limiting) and TestProducts::test_delete_missing_product (200 instead of 404) - these are real app gaps, not test bugs. Frontend flows all verified once; re-verify only areas touched by fixes. Note /app/auth_testing.md does not exist in this workspace.",
+  "rca_of_the_issue": "Brute-force failure: /api/auth/login has no attempt counter/lockout store, so every wrong password just raises 401. Delete-404 failure: handlers call db.<coll>.delete_one() and unconditionally return a success message without inspecting deleted_count."
+}
