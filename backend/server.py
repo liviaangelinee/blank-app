@@ -95,6 +95,17 @@ class LoginInput(BaseModel):
     email: str
     password: str
 
+class UpdateNameInput(BaseModel):
+    name: str
+
+class UpdateEmailInput(BaseModel):
+    new_email: str
+    current_password: str
+
+class UpdatePasswordInput(BaseModel):
+    current_password: str
+    new_password: str
+
 class Variant(BaseModel):
     label: str
     harga_grosir: float = 0
@@ -173,6 +184,38 @@ async def logout(response: Response):
 @api_router.get("/auth/me")
 async def me(user: dict = Depends(get_current_user)):
     return {"id": user["_id"], "email": user["email"], "name": user.get("name", "Admin"), "role": user.get("role", "admin")}
+
+@api_router.put("/auth/profile/name")
+async def update_name(data: UpdateNameInput, user: dict = Depends(get_current_user)):
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Nama tidak boleh kosong")
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"name": name}})
+    return {"id": user["_id"], "email": user["email"], "name": name, "role": user.get("role", "admin")}
+
+@api_router.put("/auth/profile/email")
+async def update_email(data: UpdateEmailInput, user: dict = Depends(get_current_user)):
+    full = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    if not verify_password(data.current_password, full["password_hash"]):
+        raise HTTPException(status_code=400, detail="Password saat ini salah")
+    new_email = data.new_email.lower().strip()
+    if not new_email or "@" not in new_email:
+        raise HTTPException(status_code=422, detail="Email tidak valid")
+    dup = await db.users.find_one({"email": new_email, "_id": {"$ne": ObjectId(user["_id"])}})
+    if dup:
+        raise HTTPException(status_code=400, detail="Email sudah digunakan")
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"email": new_email}})
+    return {"id": user["_id"], "email": new_email, "name": full.get("name", "Admin"), "role": full.get("role", "admin")}
+
+@api_router.put("/auth/profile/password")
+async def update_password_ep(data: UpdatePasswordInput, user: dict = Depends(get_current_user)):
+    full = await db.users.find_one({"_id": ObjectId(user["_id"])})
+    if not verify_password(data.current_password, full["password_hash"]):
+        raise HTTPException(status_code=400, detail="Password saat ini salah")
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=422, detail="Password baru minimal 6 karakter")
+    await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    return {"message": "Password berhasil diperbarui"}
 
 @api_router.post("/auth/refresh")
 async def refresh_token(request: Request, response: Response):
@@ -498,15 +541,13 @@ async def startup():
     await db.login_attempts.create_index("identifier", unique=True)
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    existing = await db.users.find_one({"email": admin_email})
-    if existing is None:
+    # Seed admin only when no user exists yet. Do NOT overwrite an existing
+    # user's email/password on restart so self-service profile edits persist.
+    if await db.users.count_documents({}) == 0:
         await db.users.insert_one({"email": admin_email, "password_hash": hash_password(admin_password),
                                    "name": "Admin", "role": "admin",
                                    "created_at": datetime.now(timezone.utc).isoformat()})
         logger.info("Admin dibuat")
-    elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one({"email": admin_email},
-                                  {"$set": {"password_hash": hash_password(admin_password)}})
 
     if await db.products.count_documents({}) == 0:
         for nama, labels in SEED_PRODUCTS:

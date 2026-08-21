@@ -9,6 +9,7 @@ import Transaksi from "@/pages/Transaksi";
 import RekapBulanan from "@/pages/RekapBulanan";
 import Produk from "@/pages/Produk";
 import Customer from "@/pages/Customer";
+import Profil from "@/pages/Profil";
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="rekap-bulanan" element={<RekapBulanan />} />
         <Route path="produk" element={<Produk />} />
         <Route path="customer" element={<Customer />} />
+        <Route path="profil" element={<Profil />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

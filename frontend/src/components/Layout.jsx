@@ -9,6 +9,7 @@ import {
   Users,
   Droplets,
   LogOut,
+  UserCog,
 } from "lucide-react";
 
 const nav = [
@@ -17,6 +18,7 @@ const nav = [
   { to: "/rekap-bulanan", label: "Rekap Bulanan", icon: CalendarRange, testid: "nav-rekap" },
   { to: "/produk", label: "Produk", icon: Package, testid: "nav-produk" },
   { to: "/customer", label: "Customer", icon: Users, testid: "nav-customer" },
+  { to: "/profil", label: "Profil", icon: UserCog, testid: "nav-profil" },
 ];
 
 export default function Layout() {
