@@ -33,11 +33,11 @@ export default function Login() {
         <div className="absolute inset-0 p-12 flex flex-col justify-between text-white">
           <div className="flex items-center gap-2">
             <Droplets className="h-7 w-7" />
-            <span className="font-heading font-bold text-xl tracking-tight">AquaRekap</span>
+            <span className="font-heading font-bold text-xl tracking-tight">CPLRekap</span>
           </div>
           <div>
             <h1 className="font-heading text-4xl font-bold leading-tight">
-              Rekap Laporan Penjualan AMDK
+              Rekapan Penjualan
             </h1>
             <p className="mt-3 text-blue-100 text-base max-w-md">
               Kelola transaksi, pantau omset, dan lacak sisa tagihan customer dalam satu dashboard.
@@ -49,8 +49,8 @@ export default function Login() {
       <div className="flex items-center justify-center p-8 bg-white">
         <form onSubmit={submit} className="w-full max-w-sm" data-testid="login-form">
           <div className="lg:hidden flex items-center gap-2 mb-8 text-blue-600">
-            <Droplets className="h-7 w-7" />
-            <span className="font-heading font-bold text-xl">AquaRekap</span>
+            <Droplets className="h-7 w-7 shrink-0" />
+            <span className="font-heading font-bold text-xl">CPLRekap</span>
           </div>
           <h2 className="font-heading text-2xl font-semibold text-slate-900">Masuk</h2>
           <p className="text-sm text-slate-500 mt-1 mb-6">Silakan masuk untuk melanjutkan.</p>

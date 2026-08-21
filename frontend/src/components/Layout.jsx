@@ -33,9 +33,12 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex bg-[#F8F9FA]">
       <aside className="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col fixed h-screen">
-        <div className="h-16 flex items-center gap-2 px-6 border-b border-slate-200 text-blue-600">
-          <Droplets className="h-6 w-6" />
-          <span className="font-heading font-bold text-lg tracking-tight text-slate-900">AquaRekap</span>
+        <div className="min-h-16 py-3 flex items-center gap-2.5 px-5 border-b border-slate-200 text-blue-600">
+          <Droplets className="h-7 w-7 shrink-0" />
+          <div className="leading-tight">
+            <span className="block font-heading font-bold text-lg tracking-tight text-slate-900">CPLRekap</span>
+            <span className="block text-[11px] text-slate-400">CV Citra Pangan Lestari</span>
+          </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {nav.map((n) => (
